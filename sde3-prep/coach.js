@@ -5,7 +5,7 @@
   let state={readiness:{},mistakes:[],mocks:[]};
   try{state=Object.assign(state,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
   const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
-  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
   const route=()=>location.hash.slice(1)||'dashboard';
   const currentWeek=()=>Math.max(1,Math.min(16,Math.floor((Date.now()-START.getTime())/(7*86400000))+1));
   const currentDay=()=>{const d=new Date().getDay();return d===0?'Sun':DAYS[d-1]};
@@ -15,17 +15,15 @@
   function addMistake(){const t=document.getElementById('mistakeText');const a=document.getElementById('mistakeArea');if(!t||!t.value.trim())return;state.mistakes.unshift({date:new Date().toISOString().slice(0,10),area:a.value,text:t.value.trim(),fix:''});save();renderCoach();}
   function updateMistake(i,field,val){state.mistakes[i][field]=val;save();}
   function addMock(){state.mocks.unshift({date:new Date().toISOString().slice(0,10),type:'System Design',company:'Core',scores:{Coding:0,Communication:0,Depth:0,Tradeoffs:0,Leadership:0},notes:''});save();renderCoach();}
-  function updMock(i,field,val){state.mocks[i].scores[field]=+val;save();}
   function delMock(i){state.mocks.splice(i,1);save();renderCoach();}
   function coachNav(){
     const extra=[['readiness','Readiness'],['mistakes','Mistake Bank'],['scorecards','Mock Scorecards']];
-    const nav=document.getElementById('nav');
-    if(!nav)return;
+    const nav=document.getElementById('nav'); if(!nav)return;
     const base=[['dashboard','Dashboard'],['today','Today'],['weeks','16-Week Plan'],['topics','Topics & Checklists'],['company-questions','Company Questions'],['companies','Company Targets'],['projects','Projects'],['mocks','Mock Interviews']];
     nav.innerHTML=base.concat(extra).map(x=>`<button class="nav-btn ${route()===x[0]?'active':''}" onclick="location.hash='${x[0]}'">${x[1]}</button>`).join('');
   }
   function injectStyle(){if(document.getElementById('coach-style'))return;const s=document.createElement('style');s.id='coach-style';s.textContent=`
-  .coach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.coach-card{background:#fff;border:1px solid #e4e8ef;border-radius:14px;padding:18px}.coach-card h3{margin:0 0 8px}.score-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:9px 0}.score-row input{width:120px}.score-badge{font-size:13px;font-weight:800}.mistake{border:1px solid #e4e8ef;border-radius:12px;padding:14px;margin:10px 0;background:#fff}.mistake textarea{width:100%;min-height:70px;box-sizing:border-box;margin-top:6px;border:1px solid #dbe1ea;border-radius:8px;padding:8px;font:inherit}.coach-actions{display:flex;gap:8px;flex-wrap:wrap}.coach-btn{border:1px solid #dbe1ea;background:#fff;border-radius:8px;padding:8px 11px;cursor:pointer}.coach-btn.primary{background:#0b1020;color:#fff}.mock-table{width:100%;border-collapse:collapse}.mock-table th,.mock-table td{padding:9px;border-bottom:1px solid #eef0f4;text-align:left;font-size:12px;vertical-align:top}.mock-table select,.mock-table input,.mock-table textarea{width:100%;box-sizing:border-box;padding:6px;border:1px solid #dbe1ea;border-radius:7px}.mock-table textarea{min-height:60px}.gate{border-left:4px solid #0b1020;background:#f8fafc;padding:12px 14px;margin:10px 0}.muted2{color:#667085;font-size:12px}.full{grid-column:1/-1}@media(max-width:1000px){.coach-grid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.coach-grid{grid-template-columns:1fr}}
+  .coach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.coach-card{background:#fff;border:1px solid #e4e8ef;border-radius:14px;padding:18px}.coach-card h3{margin:0 0 8px}.score-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:9px 0}.score-row input{width:120px}.score-badge{font-size:13px;font-weight:800}.mistake{border:1px solid #e4e8ef;border-radius:12px;padding:14px;margin:10px 0;background:#fff}.mistake textarea{width:100%;min-height:70px;box-sizing:border-box;margin-top:6px;border:1px solid #dbe1ea;border-radius:8px;padding:8px;font:inherit}.coach-actions{display:flex;gap:8px;flex-wrap:wrap}.coach-btn{border:1px solid #dbe1ea;background:#fff;border-radius:8px;padding:8px 11px;cursor:pointer}.coach-btn.primary{background:#0b1020;color:#fff}.mock-table{width:100%;border-collapse:collapse}.mock-table th,.mock-table td{padding:9px;border-bottom:1px solid #eef0f4;text-align:left;font-size:12px;vertical-align:top}.mock-table select,.mock-table input,.mock-table textarea{width:100%;box-sizing:border-box;padding:6px;border:1px solid #dbe1ea;border-radius:7px}.mock-table textarea{min-height:60px}.gate{border-left:4px solid #0b1020;background:#f8fafc;padding:12px 14px;margin:10px 0}.muted2{color:#667085;font-size:12px}@media(max-width:1000px){.coach-grid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.coach-grid{grid-template-columns:1fr}}
   `;document.head.appendChild(s)}
   function readiness(){const vals=readAreas.map(a=>state.readiness[a]||0);const avg=vals.reduce((a,b)=>a+b,0)/(vals.length||1);return Math.round(avg*20);}
   function renderReadiness(){injectStyle();const overall=readiness();let html=`<div class="hero"><div><div class="eyebrow">Interview readiness</div><h2>Are you actually ready for SDE 3?</h2><p>Rate each area from 1–5 based on what you can demonstrate in an interview, not how much material you have consumed.</p></div><div class="ring-wrap"><div class="ring" style="--p:${overall*3.6}deg"><span>${overall}%</span></div></div></div><h2 class="section-title">Readiness by competency</h2><div class="coach-grid">`;
@@ -40,5 +38,5 @@
   window.__coachSet=setScore;window.__coachAddMistake=addMistake;window.__coachDelMistake=removeMistake;window.__coachMistake=updateMistake;window.__coachAddMock=addMock;window.__coachDelMock=delMock;
   window.__coachMock=(i,f,v)=>{state.mocks[i][f]=v;save();};window.__coachMockScore=(i,f,v)=>{state.mocks[i].scores[f]=+v;save();};
   window.addEventListener('hashchange',()=>setTimeout(renderCoach,0));
-  window.addEventListener('load',()=>setTimeout(()=>{try{const oldWeek=window.currentWeek;window.currentWeek=()=>{const q=new URLSearchParams(location.search).get('week');if(q&&+q>=1&&+q<=16)return window.weeks?window.weeks[+q-1]:oldWeek();const n=Math.floor((Date.now()-START.getTime())/(7*86400000))+1;return window.weeks?window.weeks[Math.max(0,Math.min(15,n-1))]:oldWeek();};}catch(e){} renderCoach();},100));
+  window.addEventListener('load',()=>setTimeout(()=>{try{const oldWeek=window.currentWeek;window.currentWeek=()=>{const q=new URLSearchParams(location.search).get('week');if(q&&+q>=1&&+q<=16)return window.weeks?window.weeks[+q-1]:oldWeek();const n=Math.floor((Date.now()-START.getTime())/(7*86400000))+1;return window.weeks?window.weeks[Math.max(0,Math.min(15,n-1))]:oldWeek();};if(window.render)window.render();}catch(e){} renderCoach();},150));
 })();
